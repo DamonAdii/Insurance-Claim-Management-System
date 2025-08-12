@@ -1,5 +1,6 @@
 package com.icms.controller;
 
+import com.icms.dto.ErrorResponseDto;
 import com.icms.entity.User;
 import com.icms.repository.UserRepository;
 import com.icms.security.JwtUtil;
@@ -7,6 +8,10 @@ import com.icms.security.requests.ApiResponse;
 import com.icms.security.requests.JwtResponse;
 import com.icms.security.requests.LoginRequest;
 import com.icms.security.requests.RegisterRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +36,25 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
+
+    @Operation(
+            summary = "Register Users REST API",
+            description = "REST API to create new user inside ICMS"
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "HTTP Status CREATED"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "HTTP Status Internal Server Error",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponseDto.class)
+                    )
+            )
+    }
+    )
     @PostMapping(value = "/register", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
@@ -47,6 +71,25 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse(true, "User registered"));
     }
 
+
+    @Operation(
+            summary = "Login User REST API",
+            description = "REST API to login inside ICMS"
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "HTTP Status CREATED"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "HTTP Status Internal Server Error",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponseDto.class)
+                    )
+            )
+    }
+    )
     @PostMapping(value = "/login", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
             , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {

@@ -4,6 +4,7 @@ import com.icms.dto.CreateClaimDto;
 import com.icms.entity.Claim;
 import com.icms.service.ClaimService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +20,15 @@ public class ClaimController {
 
     private final ClaimService claimService;
 
-    @PostMapping
+    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<Claim> createClaim(@RequestBody CreateClaimDto dto) {
         return ResponseEntity.ok(claimService.createClaim(dto));
     }
 
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<?> upload(@RequestParam Long claimId, @RequestParam("file") MultipartFile file) throws IOException {
         // validate file type, store file under configured baseDir + /claims/{claimId}/<filename>
@@ -33,13 +36,15 @@ public class ClaimController {
         return ResponseEntity.ok(claimService.uploadFile(claimId, file));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public ResponseEntity<Claim> getById(@PathVariable Long id) {
         return ResponseEntity.ok(claimService.getById(id));
     }
 
-    @GetMapping("/all")
+    @GetMapping(value = "/all", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Claim>> getAll() {
         return ResponseEntity.ok(claimService.getAll());
