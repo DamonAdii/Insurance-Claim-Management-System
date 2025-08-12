@@ -20,3 +20,9 @@ app:
     expirationMs: 86400000
   upload:
     base-dir: ./uploads
+
+
+# file uploading config
+#D:\Dev Work\INTELLIJ WORKSPACE\ICMSASSETS
+icms-file-upload:
+      claims-dir: D:/Dev Work/INTELLIJ WORKSPACE/ICMSASSETS/
