@@ -115,6 +115,7 @@ public class ClaimController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
+
                     description = "HTTP Status OK"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
