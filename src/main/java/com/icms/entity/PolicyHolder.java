@@ -1,5 +1,6 @@
 package com.icms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,5 +27,6 @@ public class PolicyHolder {
     private String phone;
 
     @OneToMany(mappedBy="policyHolder", cascade = CascadeType.ALL)
+    @JsonIgnore // prevent recursion
     private List<Policy> policies = new ArrayList<>();
 }

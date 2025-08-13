@@ -49,8 +49,9 @@ public class ClaimController {
     )
     @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
             , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
-    @PreAuthorize("hasRole('AGENT')")
+    @PreAuthorize("hasRole('AGENT', 'ADMIN')")
     public ResponseEntity<Claim> createClaim(@RequestBody CreateClaimDto dto) {
+        System.out.println("Policy id is : "+dto.getPolicyId());
         return ResponseEntity.ok(claimService.createClaim(dto));
     }
 

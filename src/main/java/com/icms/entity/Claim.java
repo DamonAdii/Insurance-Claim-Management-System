@@ -1,5 +1,6 @@
 package com.icms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,5 +27,6 @@ public class Claim {
 
     @ManyToOne
     @JoinColumn(name="policy_id")
+    @JsonIgnore
     private Policy policy;
 }
