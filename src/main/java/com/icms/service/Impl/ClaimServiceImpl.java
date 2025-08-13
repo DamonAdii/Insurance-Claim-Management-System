@@ -6,9 +6,12 @@ import com.icms.entity.Claim;
 import com.icms.entity.Policy;
 import com.icms.repository.ClaimRepository;
 import com.icms.repository.PolicyRepository;
+import com.icms.repository.UserRepository;
 import com.icms.service.ClaimService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClaimServiceImpl implements ClaimService {
@@ -24,14 +28,21 @@ public class ClaimServiceImpl implements ClaimService {
     private final ClaimRepository claimRepository;
     private final PolicyRepository policyRepository;
     private final ClaimsFileConfig claimsFileConfig;
+    private final UserRepository userRepository;
     @Override
     public Claim createClaim(CreateClaimDto dto) {
+        log.info("Creating claim with claimNumber={} for policyId={}", dto.getClaimNumber(), dto.getPolicyId());
+
         if (claimRepository.existsByClaimNumber(dto.getClaimNumber())) {
+            log.warn("Claim creation failed - claimNumber={} already exists", dto.getClaimNumber());
             throw new RuntimeException("Claim number already exists");
         }
 
         Policy policy = policyRepository.findById(dto.getPolicyId())
-                .orElseThrow(() -> new RuntimeException("Policy not found"));
+                .orElseThrow(() -> {
+                    log.error("Policy not found for ID={}", dto.getPolicyId());
+                    return new RuntimeException("Policy not found");
+                });
 
         Claim claim = new Claim();
         claim.setClaimNumber(dto.getClaimNumber());
@@ -40,34 +51,80 @@ public class ClaimServiceImpl implements ClaimService {
         claim.setStatus(dto.getStatus());
         claim.setPolicy(policy);
 
-        return claimRepository.save(claim);
+        Claim savedClaim = claimRepository.save(claim);
+        log.info("Claim created successfully with ID={}", savedClaim.getId());
+
+        return savedClaim;
     }
 
     @Override
     public Claim uploadFile(Long claimId, MultipartFile file) throws IOException {
-        Claim claim = claimRepository.findById(claimId)
-                .orElseThrow(() -> new RuntimeException("Claim not found"));
+        log.info("Uploading file for claimId={} with filename={}", claimId, file.getOriginalFilename());
 
-        // Create directory for claim
-        Path claimDir = Path.of(claimsFileConfig.getClaimsDir(), String.valueOf(claimId));
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> {
+                    log.error("Claim not found for ID={}", claimId);
+                    return new RuntimeException("Claim not found");
+                });
+
+        // Get userId from logged-in user
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Long userId = userRepository.findByEmail(username)
+                .orElseThrow(() -> {
+                    log.error("User not found with email={}", username);
+                    return new RuntimeException("User not found");
+                }).getId();
+
+        // Create directory structure: baseDir/userId/claimId
+        Path claimDir = Path.of(
+                claimsFileConfig.getClaimsDir(),
+                String.valueOf(userId),
+                String.valueOf(claimId)
+        );
         Files.createDirectories(claimDir);
 
-        // Store file
+        // Save file
         Path filePath = claimDir.resolve(file.getOriginalFilename());
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         claim.setFilePath(filePath.toString());
-        return claimRepository.save(claim);
+        Claim updatedClaim = claimRepository.save(claim);
+
+        log.info("File stored at {} for claimId={}", filePath, claimId);
+        return updatedClaim;
     }
+//    public Claim uploadFile(Long claimId, MultipartFile file) throws IOException {
+//        Claim claim = claimRepository.findById(claimId)
+//                .orElseThrow(() -> new RuntimeException("Claim not found"));
+//
+//        // Create directory for claim
+//        Path claimDir = Path.of(claimsFileConfig.getClaimsDir(), String.valueOf(claimId));
+//        Files.createDirectories(claimDir);
+//
+//        // Store file
+//        Path filePath = claimDir.resolve(file.getOriginalFilename());
+//        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+//
+//        claim.setFilePath(filePath.toString());
+//        return claimRepository.save(claim);
+//    }
 
     @Override
     public Claim getById(Long id) {
+        log.info("Fetching claim with ID={}", id);
+
         return claimRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Claim not found"));
+                .orElseThrow(() -> {
+                    log.error("Claim not found for ID={}", id);
+                    return new RuntimeException("Claim not found");
+                });
     }
 
     @Override
     public List<Claim> getAll() {
-        return claimRepository.findAll();
+        log.info("Fetching all claims from repository");
+        List<Claim> claims = claimRepository.findAll();
+        log.info("Retrieved {} claims", claims.size());
+        return claims;
     }
 }

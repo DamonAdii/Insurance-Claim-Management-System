@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+@Slf4j
 @Tag(
         name = "Claim CRUD operation in Insurance Claim Management System REST API",
         description = "Claim CRUD operation in Insurance Claim Management System REST API details"
@@ -51,8 +53,16 @@ public class ClaimController {
             , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<Claim> createClaim(@RequestBody CreateClaimDto dto) {
-        System.out.println("Policy id is : "+dto.getPolicyId());
-        return ResponseEntity.ok(claimService.createClaim(dto));
+
+        log.info("Received request to create claim for policyId={} with claimNumber={}",
+                dto.getPolicyId(), dto.getClaimNumber());
+
+        Claim createdClaim = claimService.createClaim(dto);
+
+        log.info("Claim created successfully with ID={} for policyId={}",
+                createdClaim.getId(), dto.getPolicyId());
+
+        return ResponseEntity.ok(createdClaim);
     }
 
     @Operation(
@@ -73,13 +83,17 @@ public class ClaimController {
             )
     }
     )
-    @PostMapping(value = "/upload", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    @PostMapping(value = "/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}
             , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<?> upload(@RequestParam Long claimId, @RequestParam("file") MultipartFile file) throws IOException {
-        // validate file type, store file under configured baseDir + /claims/{claimId}/<filename>
-        // update claim.filePath, save
-        return ResponseEntity.ok(claimService.uploadFile(claimId, file));
+        log.info("File upload request received for claimId={} with filename={}", claimId, file.getOriginalFilename());
+
+        Object response = claimService.uploadFile(claimId, file);
+
+        log.info("File successfully uploaded for claimId={} filename={}", claimId, file.getOriginalFilename());
+
+        return ResponseEntity.ok(response);
     }
 
 
@@ -101,11 +115,14 @@ public class ClaimController {
             )
     }
     )
-    @GetMapping(value = "/{id}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
-            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
+    @GetMapping(value = "/{id}", produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public ResponseEntity<Claim> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(claimService.getById(id));
+        log.info("Fetching claim with ID={}", id);
+        Claim claim = claimService.getById(id);
+
+        log.info("Successfully retrieved claim with ID={}", id);
+        return ResponseEntity.ok(claim);
     }
 
 
@@ -120,19 +137,23 @@ public class ClaimController {
                     description = "HTTP Status OK"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "HTTP Status Internal Server Error",
+                    responseCode = "402",
+                    description = "HTTP Status UnAuthorized",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponseDto.class)
                     )
             )
     }
     )
-    @GetMapping(value = "/all", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
-            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
+    @GetMapping(value = "/all", produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Claim>> getAll() {
-        return ResponseEntity.ok(claimService.getAll());
+        log.info("Fetching all claims");
+
+        List<Claim> claims = claimService.getAll();
+
+        log.info("Total claims retrieved: {}", claims.size());
+        return ResponseEntity.ok(claims);
     }
 
 }

@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+@Slf4j
 @Tag(
         name = "Authentication and Authorization in Insurance Claim Management System REST API",
         description = "Authentication and Authorization in Insurance Claim Management System REST API details"
@@ -62,7 +64,10 @@ public class AuthController {
     @PostMapping(value = "/register", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+        log.info("Received registration request for email: {}", req.getEmail());
+
         if (userRepository.findByEmail(req.getEmail()).isPresent()) {
+            log.warn("Registration failed — email already exists: {}", req.getEmail());
             return ResponseEntity.badRequest().body(new ApiResponse(false, "Email already exists"));
         }
         User u = new User();
@@ -72,6 +77,7 @@ public class AuthController {
         // expecting role string as "ADMIN" or "AGENT" from client
         u.setRole(req.getRole().toUpperCase());
         userRepository.save(u);
+        log.info("User registered successfully: {}", req.getEmail());
         return ResponseEntity.ok(new ApiResponse(true, "User registered"));
     }
 
@@ -97,15 +103,23 @@ public class AuthController {
     @PostMapping(value = "/login", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
             , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        log.info("Login attempt for email: {}", req.getEmail());
+
         return userRepository.findByEmail(req.getEmail())
                 .map(user -> {
                     if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+                        log.warn("Login failed — invalid password for email: {}", req.getEmail());
                         return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
                     }
                     String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+                    log.info("Login successful for email: {}", req.getEmail());
                     return ResponseEntity.ok(new JwtResponse(token, "Bearer", jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
                 })
-                .orElseGet(() -> ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials")));
+                .orElseGet(() -> {
+                    log.warn("Login failed — no user found with email: {}", req.getEmail());
+                    return ResponseEntity.status(401)
+                            .body(new ApiResponse(false, "Invalid credentials"));
+                });
     }
 
 }

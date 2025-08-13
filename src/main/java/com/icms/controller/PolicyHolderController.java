@@ -11,11 +11,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+@Slf4j
 @Tag(
         name = "Policy Holder CRUD operation in Insurance Claim Management System REST API",
         description = "Policy Holder CRUD operation in Insurance Claim Management System REST API details"
@@ -45,10 +47,13 @@ public class PolicyHolderController {
             )
     }
     )
-    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+            , produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyHolder> create(@Valid @RequestBody PolicyHolderDto dto) {
+        log.info("Received request to create policy holder: {}", dto);
         PolicyHolder created = policyHolderService.createPolicyHolder(dto);
+        log.info("Policy holder created successfully with ID: {}", created.getId());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
@@ -70,10 +75,14 @@ public class PolicyHolderController {
             )
     }
     )
-    @GetMapping(value = "/{id}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @GetMapping(value = "/{id}", produces = {MediaType.APPLICATION_JSON_VALUE,MediaType.APPLICATION_XML_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyHolder> getById(@PathVariable Long id) {
+        log.info("Fetching policy holder by ID: {}", id);
+
         PolicyHolder found = policyHolderService.getPolicyHolderById(id);
+
+        log.info("Policy holder found with ID: {}", id);
         return ResponseEntity.ok(found);
     }
 

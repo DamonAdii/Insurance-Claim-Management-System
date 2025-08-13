@@ -7,9 +7,11 @@ import com.icms.repository.PolicyHolderRepository;
 import com.icms.repository.PolicyRepository;
 import com.icms.service.PolicyService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PolicyServiceImpl implements PolicyService {
@@ -19,15 +21,22 @@ public class PolicyServiceImpl implements PolicyService {
 
     @Override
     public Policy createPolicy(PolicyCreateDto dto) {
+        log.debug("Checking if policy number {} already exists", dto.getPolicyNumber());
         // Check if policy number is unique
         if (policyRepository.existsByPolicyNumber(dto.getPolicyNumber())) {
+            log.error("Policy number already exists: {}", dto.getPolicyNumber());
             throw new RuntimeException("Policy number already exists: " + dto.getPolicyNumber());
         }
 
+        log.debug("Fetching policy holder with ID: {}", dto.getPolicyHolderId());
         // Find policy holder
         PolicyHolder holder = policyHolderRepository.findById(dto.getPolicyHolderId())
-                .orElseThrow(() -> new RuntimeException("Policy Holder not found with ID: " + dto.getPolicyHolderId()));
+                .orElseThrow(() -> {
+                    log.error("Policy Holder not found with ID: {}", dto.getPolicyHolderId());
+                    return new RuntimeException("Policy Holder not found with ID: " + dto.getPolicyHolderId());
+                });
 
+        log.debug("Mapping PolicyCreateDto to Policy entity");
         // Map DTO to Entity
         Policy policy = new Policy();
         policy.setPolicyNumber(dto.getPolicyNumber());
@@ -37,11 +46,23 @@ public class PolicyServiceImpl implements PolicyService {
         policy.setEndDate(dto.getEndDate());
         policy.setPolicyHolder(holder);
 
-        return policyRepository.save(policy);
+        Policy savedPolicy = policyRepository.save(policy);
+        log.info("Policy created successfully with ID: {}", savedPolicy.getId());
+
+        return savedPolicy;
     }
 
     @Override
     public Optional<Policy> getById(Long id) {
-        return policyRepository.findById(id);
+        log.debug("Fetching policy with ID: {}", id);
+        Optional<Policy> policy = policyRepository.findById(id);
+
+        if (policy.isPresent()) {
+            log.info("Policy found with ID: {}", id);
+        } else {
+            log.warn("No policy found with ID: {}", id);
+        }
+
+        return policy;
     }
 }

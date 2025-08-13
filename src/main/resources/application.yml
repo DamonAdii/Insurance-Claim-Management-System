@@ -24,5 +24,7 @@ app:
 
 # file uploading config
 #D:\Dev Work\INTELLIJ WORKSPACE\ICMSASSETS
+#D:\Work\IntellijWorkspace\ICMSASSETS
 icms-file-upload:
-      claims-dir: D:/Dev Work/INTELLIJ WORKSPACE/ICMSASSETS/
+#      claims-dir: D:/Dev Work/INTELLIJ WORKSPACE/ICMSASSETS/
+      claims-dir: D:/Work/IntellijWorkspace/ICMSASSETS
