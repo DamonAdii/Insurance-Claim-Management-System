@@ -17,6 +17,11 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,13 +38,17 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
     public AuthController(UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
+                          AuthenticationManager authenticationManager,
                           JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
     }
 
@@ -106,21 +115,40 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         log.info("Login attempt for email: {}", req.getEmail());
 
-        return userRepository.findByEmail(req.getEmail())
-                .map(user -> {
-                    if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-                        log.warn("Login failed — invalid password for email: {}", req.getEmail());
-                        return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
-                    }
-                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
-                    log.info("Login successful for email: {}", req.getEmail());
-                    return ResponseEntity.ok(new JwtResponse(token, "Bearer", jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
-                })
-                .orElseGet(() -> {
-                    log.warn("Login failed — no user found with email: {}", req.getEmail());
-                    return ResponseEntity.status(401)
-                            .body(new ApiResponse(false, "Invalid credentials"));
-                });
+//        return userRepository.findByEmail(req.getEmail())
+//                .map(user -> {
+//                    if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+//                        log.warn("Login failed — invalid password for email: {}", req.getEmail());
+//                        return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
+//                    }
+//                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+//                    log.info("Login successful for email: {}", req.getEmail());
+//                    return ResponseEntity.ok(new JwtResponse(token, "Bearer", jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
+//                })
+//                .orElseGet(() -> {
+//                    log.warn("Login failed — no user found with email: {}", req.getEmail());
+//                    return ResponseEntity.status(401)
+//                            .body(new ApiResponse(false, "Invalid credentials"));
+//                });
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
+            );
+
+            // If we reach here → authentication succeeded
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            String token = jwtUtil.generateToken(req.getEmail(),
+                    authentication.getAuthorities().iterator().next().getAuthority());
+
+            return ResponseEntity.ok(new JwtResponse(token, "Bearer",
+                    jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
+
+        } catch (BadCredentialsException ex) {
+            return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
+        }
+
     }
 
 }
