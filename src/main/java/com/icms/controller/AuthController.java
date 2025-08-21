@@ -115,22 +115,6 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         log.info("Login attempt for email: {}", req.getEmail());
 
-//        return userRepository.findByEmail(req.getEmail())
-//                .map(user -> {
-//                    if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-//                        log.warn("Login failed — invalid password for email: {}", req.getEmail());
-//                        return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
-//                    }
-//                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
-//                    log.info("Login successful for email: {}", req.getEmail());
-//                    return ResponseEntity.ok(new JwtResponse(token, "Bearer", jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
-//                })
-//                .orElseGet(() -> {
-//                    log.warn("Login failed — no user found with email: {}", req.getEmail());
-//                    return ResponseEntity.status(401)
-//                            .body(new ApiResponse(false, "Invalid credentials"));
-//                });
-
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
@@ -150,5 +134,26 @@ public class AuthController {
         }
 
     }
+
+
+
+
+
+    //        return userRepository.findByEmail(req.getEmail())
+//                .map(user -> {
+//                    if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+//                        log.warn("Login failed — invalid password for email: {}", req.getEmail());
+//                        return ResponseEntity.status(401).body(new ApiResponse(false, "Invalid credentials"));
+//                    }
+//                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+//                    log.info("Login successful for email: {}", req.getEmail());
+//                    return ResponseEntity.ok(new JwtResponse(token, "Bearer", jwtUtil.extractExpiration(token).toInstant().toEpochMilli()));
+//                })
+//                .orElseGet(() -> {
+//                    log.warn("Login failed — no user found with email: {}", req.getEmail());
+//                    return ResponseEntity.status(401)
+//                            .body(new ApiResponse(false, "Invalid credentials"));
+//                });
+
 
 }
