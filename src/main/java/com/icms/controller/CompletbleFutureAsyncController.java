@@ -56,7 +56,7 @@ public class CompletbleFutureAsyncController {
         long start = System.currentTimeMillis();
         Claim claim = claimService.createClaimAsync(dto).get();
         long end = System.currentTimeMillis();
-        System.out.println("total time is : "+ (end - start));
+        System.out.println("total time is : "+ (end - start)+" ms");
         return ResponseEntity.ok(claim);
     }
 
