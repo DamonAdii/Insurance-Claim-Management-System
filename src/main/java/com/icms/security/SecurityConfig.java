@@ -30,6 +30,7 @@ public class SecurityConfig {
                         // policyholder / policies / claims ACLs can be further locked with @PreAuthorize
                         .requestMatchers("/api/policyholders/**").hasRole("ADMIN")
                         .requestMatchers("/api/policies/**").hasAnyRole("ADMIN","AGENT")
+                        .requestMatchers("/api/async/**").hasAnyRole("ADMIN","AGENT")
                         .requestMatchers("/api/claims/upload").hasRole("AGENT")
                         .requestMatchers("/api/claims/**").hasAnyRole("ADMIN","AGENT")
                         .anyRequest().authenticated()
