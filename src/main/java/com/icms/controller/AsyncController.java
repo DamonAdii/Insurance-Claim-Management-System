@@ -3,6 +3,7 @@ package com.icms.controller;
 import com.icms.dto.ErrorResponseDto;
 import com.icms.entity.User;
 import com.icms.repository.UserRepository;
+import com.icms.service.KafkaLogProducer;
 import com.icms.service.LoggingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +33,10 @@ public class AsyncController {
 
     private final LoggingService loggingService;
     private final UserRepository userRepository;
+    private final KafkaLogProducer kafkaLogProducer;
+
+    @Value("${app.kafka.log-topic}")
+    private String topic;
 
     @Operation(
             summary = "Get All Users List Using Async",
@@ -55,9 +61,11 @@ public class AsyncController {
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public ResponseEntity<List<User>> getAllUsers(){
         long start = System.currentTimeMillis();
-        loggingService.logInfo("Get request for async users");
+//        loggingService.logInfo("Get request for async users");
+        kafkaLogProducer.sendLog(topic, "Get request for async users");
         List<User> allUsersList = userRepository.findAll();
-        loggingService.logInfo("Get all async users successfully");
+//        loggingService.logInfo("Get all async users successfully");
+        kafkaLogProducer.sendLog(topic, "Get all async users successfully");
         long end = System.currentTimeMillis();
         System.out.println("total time is : "+ (end-start));
         return ResponseEntity.ok(allUsersList);
