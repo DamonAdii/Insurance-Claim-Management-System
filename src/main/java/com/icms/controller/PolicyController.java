@@ -51,6 +51,7 @@ public class PolicyController {
     public ResponseEntity<Policy> createPolicy(@Valid @RequestBody PolicyCreateDto dto) {
         log.info("Received request to create policy: {}", dto);
         Policy createdPolicy = policyService.createPolicy(dto);
+
         log.info("Policy created successfully with ID: {}", createdPolicy.getId());
         return ResponseEntity.ok(createdPolicy);
     }

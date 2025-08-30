@@ -47,6 +47,7 @@ public class PolicyServiceImpl implements PolicyService {
         policy.setPolicyHolder(holder);
 
         Policy savedPolicy = policyRepository.save(policy);
+        savedPolicy.setCoverageAmount(0l);
         log.info("Policy created successfully with ID: {}", savedPolicy.getId());
 
         return savedPolicy;
