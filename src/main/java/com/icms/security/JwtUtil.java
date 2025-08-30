@@ -56,7 +56,7 @@ public class JwtUtil {
     }
 
     public String extractSubject(String token) {
-        System.out.println("This is encoded for check extract method");
+//        System.out.println("This is encoded for check extract method");
         return extractClaim(token, Claims::getSubject);
     }
 

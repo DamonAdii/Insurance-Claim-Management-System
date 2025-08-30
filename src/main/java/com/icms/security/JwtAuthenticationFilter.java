@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = header.substring(7);
             try {
                 username = jwtUtil.extractSubject(token);
-                System.out.println("This is encoded for check");
+//                System.out.println("This is encoded for check");
             } catch (Exception ex) {
                 logger.debug("Failed extracting username from token: {}", ex.getMessage());
             }

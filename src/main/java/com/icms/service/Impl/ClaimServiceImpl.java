@@ -8,6 +8,8 @@ import com.icms.repository.ClaimRepository;
 import com.icms.repository.PolicyRepository;
 import com.icms.repository.UserRepository;
 import com.icms.service.ClaimService;
+import com.icms.service.KafkaLogProducer;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +22,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,11 @@ public class ClaimServiceImpl implements ClaimService {
     private final PolicyRepository policyRepository;
     private final ClaimsFileConfig claimsFileConfig;
     private final UserRepository userRepository;
+    private final KafkaLogProducer kafkaLogProducer;
+
+    @Value("${app.kafka.log-topic}")
+    private String topic;
+
     @Override
     public Claim createClaim(CreateClaimDto dto) {
         log.info("Creating claim with claimNumber={} for policyId={}", dto.getClaimNumber(), dto.getPolicyId());
@@ -127,4 +136,46 @@ public class ClaimServiceImpl implements ClaimService {
         log.info("Retrieved {} claims", claims.size());
         return claims;
     }
+
+
+    @Transactional
+    @Override
+    public CompletableFuture<Claim> createClaimAsync(CreateClaimDto dto) {
+
+        return CompletableFuture.supplyAsync(() -> {
+
+//            log.info("Creating claim with claimNumber={} for policyId={}", dto.getClaimNumber(), dto.getPolicyId());
+            kafkaLogProducer.sendLog(topic,"Creating claim with claimNumber "+dto.getClaimNumber());
+
+            if (claimRepository.existsByClaimNumber(dto.getClaimNumber())) {
+//                log.warn("Claim creation failed - claimNumber={} already exists", dto.getClaimNumber());
+                kafkaLogProducer.sendLog(topic,"Claim creation failed - claimNumber="+dto.getClaimNumber()+" already exists");
+                throw new RuntimeException("Claim number already exists");
+            }
+
+            Policy policy = policyRepository.findById(dto.getPolicyId())
+                    .orElseThrow(() -> {
+//                        log.error("Policy not found for ID={}", dto.getPolicyId());
+                        kafkaLogProducer.sendLog(topic,"Policy not found for ID={}r="+dto.getPolicyId());
+                        return new RuntimeException("Policy not found");
+                    });
+
+            Claim claim = new Claim();
+            claim.setClaimNumber(dto.getClaimNumber());
+            claim.setClaimDate(dto.getClaimDate());
+            claim.setAmountClaimed(dto.getAmountClaimed());
+            claim.setStatus(dto.getStatus());
+            claim.setPolicy(policy);
+
+            // save order in DB (transactional)
+            Claim savedClaim = claimRepository.save(claim);
+//            log.info("Claim created successfully with ID={}", savedClaim.getId());
+            // publish log to Kafka asynchronously
+//            sendLogAsync("Order placed: " + saved.getId());
+//            kafkaLogProducer.sendLog("Claim created successfully with ID={}", String.valueOf(savedClaim.getId()));
+            kafkaLogProducer.sendLog(topic,"Claim created successfully with ID="+savedClaim.getId());
+            return savedClaim;
+        });
+    }
+
 }
